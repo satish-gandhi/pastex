@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Copy Data",
+  "version": "1.0",
+  "description": "Store and quickly copy frequently used data like emails, phone numbers, and addresses",
+  "permissions": [
+    "storage",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Quick Copy Data"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  }
+}
