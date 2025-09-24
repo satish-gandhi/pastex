@@ -5,7 +5,12 @@
   "description": "Store and quickly copy frequently used data like emails, phone numbers, and addresses",
   "permissions": [
     "storage",
-    "clipboardWrite"
+    "clipboardWrite",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -14,5 +19,13 @@
   "options_page": "options.html",
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ]
 }

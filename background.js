@@ -27,11 +27,15 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-// Handle messages from popup or content scripts if needed
+// Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'copyToClipboard') {
     // This is handled by the popup script directly using navigator.clipboard
     // But we can add additional functionality here if needed
+    sendResponse({ success: true });
+  } else if (request.action === 'openOptionsPage') {
+    // Open options page when requested from content script
+    chrome.runtime.openOptionsPage();
     sendResponse({ success: true });
   }
 });
