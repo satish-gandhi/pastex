@@ -1,9 +1,9 @@
-// Background service worker for the Quick Copy Data extension
+// Background service worker for the PasteX extension
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('Quick Copy Data extension installed');
+    console.log('PasteX extension installed');
 
     // Initialize storage with sample data
     chrome.storage.sync.get(['quickCopyData'], (result) => {

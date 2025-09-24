@@ -1,4 +1,4 @@
-// Quick Copy Data Extension - Content Script
+// PasteX Extension - Content Script
 
 (function() {
   'use strict';
@@ -6,9 +6,25 @@
   let floatingBtn = null;
   let floatingMenu = null;
   let isMenuOpen = false;
+  let extensionContext = true;
+
+  // Check if extension context is still valid
+  function isExtensionContextValid() {
+    try {
+      return chrome && chrome.runtime && chrome.runtime.id && extensionContext;
+    } catch (error) {
+      extensionContext = false;
+      return false;
+    }
+  }
 
   // Initialize the floating button and menu
   async function init() {
+    if (!isExtensionContextValid()) {
+      console.warn('Extension context invalid - not initializing PasteX');
+      return;
+    }
+
     createFloatingButton();
     createFloatingMenu();
     await loadMenuState();
@@ -22,7 +38,7 @@
     floatingBtn = document.createElement('button');
     floatingBtn.id = 'quick-copy-floating-btn';
     floatingBtn.innerHTML = '📋';
-    floatingBtn.title = 'Quick Copy Data';
+    floatingBtn.title = 'PasteX';
 
     floatingBtn.addEventListener('click', toggleMenu);
     document.body.appendChild(floatingBtn);
@@ -36,7 +52,7 @@
     floatingMenu.id = 'quick-copy-floating-menu';
 
     floatingMenu.innerHTML = `
-      <div class="quick-copy-menu-header">Quick Copy Data</div>
+      <div class="quick-copy-menu-header">PasteX</div>
       <div class="quick-copy-menu-content" id="quick-copy-menu-content">
         <div class="quick-copy-no-data">Loading...</div>
       </div>
@@ -80,16 +96,15 @@
   }
 
   async function saveMenuState(isOpen) {
+    if (!isExtensionContextValid()) {
+      return; // Silent fail if extension context is invalid
+    }
+
     try {
-      // Check if chrome API is available
-      if (!chrome || !chrome.storage || !chrome.storage.local) {
-        console.warn('Chrome storage API not available');
-        return;
-      }
       await chrome.storage.local.set({ quickCopyMenuOpen: isOpen });
     } catch (error) {
       if (error.message && error.message.includes('Extension context invalidated')) {
-        console.warn('Extension context invalidated - menu state not saved');
+        extensionContext = false;
         // Don't show error to user, just fail silently
       } else {
         console.error('Error saving menu state:', error);
@@ -98,14 +113,12 @@
   }
 
   async function loadMenuState() {
-    try {
-      // Check if chrome API is available
-      if (!chrome || !chrome.storage || !chrome.storage.local) {
-        console.warn('Chrome storage API not available - defaulting to closed menu');
-        isMenuOpen = false;
-        return;
-      }
+    if (!isExtensionContextValid()) {
+      isMenuOpen = false;
+      return;
+    }
 
+    try {
       const result = await chrome.storage.local.get(['quickCopyMenuOpen']);
       const shouldBeOpen = result.quickCopyMenuOpen || false;
 
@@ -123,7 +136,7 @@
       }
     } catch (error) {
       if (error.message && error.message.includes('Extension context invalidated')) {
-        console.warn('Extension context invalidated - defaulting to closed menu');
+        extensionContext = false;
       } else {
         console.error('Error loading menu state:', error);
       }
@@ -132,20 +145,18 @@
   }
 
   async function loadDataAndUpdateMenu() {
-    try {
-      // Check if chrome API is available
-      if (!chrome || !chrome.storage || !chrome.storage.sync) {
-        console.warn('Chrome storage API not available - showing no data message');
-        updateMenuContent([]);
-        return;
-      }
+    if (!isExtensionContextValid()) {
+      updateMenuContent([]);
+      return;
+    }
 
+    try {
       const result = await chrome.storage.sync.get(['quickCopyData']);
       const data = result.quickCopyData || [];
       updateMenuContent(data);
     } catch (error) {
       if (error.message && error.message.includes('Extension context invalidated')) {
-        console.warn('Extension context invalidated - cannot load data');
+        extensionContext = false;
         updateMenuContent([]);
       } else {
         console.error('Error loading data:', error);
@@ -228,25 +239,18 @@
   }
 
   function openOptionsPage() {
-    try {
-      // Check if chrome API is available
-      if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
-        console.warn('Chrome runtime API not available - cannot open options page');
-        // Fallback: try to open options page directly if possible
-        if (chrome && chrome.runtime && chrome.runtime.openOptionsPage) {
-          chrome.runtime.openOptionsPage();
-        } else {
-          alert('Cannot open options page. Please reload the page and try again.');
-        }
-        return;
-      }
+    if (!isExtensionContextValid()) {
+      alert('Extension context invalid. Please reload the page and try again.');
+      return;
+    }
 
+    try {
       chrome.runtime.sendMessage({ action: 'openOptionsPage' });
       // Don't auto-close menu since we want persistence
     } catch (error) {
       if (error.message && error.message.includes('Extension context invalidated')) {
-        console.warn('Extension context invalidated - cannot open options page');
-        alert('Extension needs to be reloaded. Please reload the page and try again.');
+        extensionContext = false;
+        alert('Extension context invalidated. Please reload the page and try again.');
       } else {
         console.error('Error opening options page:', error);
         alert('Cannot open options page. Please try again.');
@@ -269,10 +273,10 @@
 
   // Listen for storage changes to update menu in real-time
   try {
-    if (chrome && chrome.storage && chrome.storage.onChanged) {
+    if (isExtensionContextValid() && chrome.storage && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'sync' && changes.quickCopyData) {
-          if (isMenuOpen) {
+          if (isMenuOpen && isExtensionContextValid()) {
             loadDataAndUpdateMenu();
           }
         }
