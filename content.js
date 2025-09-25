@@ -51,6 +51,12 @@
     floatingBtn.title = 'PasteX';
     floatingBtn.addEventListener('click', handleFloatingButtonClick);
 
+    // Add drag functionality
+    makeDraggable(floatingBtn);
+
+    // Load saved position
+    loadButtonPosition();
+
     document.body.appendChild(floatingBtn);
   }
 
@@ -89,7 +95,22 @@
   }
 
   function openMenu() {
-    if (!floatingMenu) return;
+    if (!floatingMenu || !floatingBtn) return;
+
+    // Position menu relative to button's current position
+    const buttonRect = floatingBtn.getBoundingClientRect();
+    const menuHeight = 400; // max-height from CSS
+
+    // Position menu above the button
+    floatingMenu.style.left = buttonRect.left + 'px';
+    floatingMenu.style.bottom = (window.innerHeight - buttonRect.top + 10) + 'px';
+
+    // Adjust if menu would go off screen (above viewport)
+    const menuRect = floatingMenu.getBoundingClientRect();
+    if (menuRect.top < 0) {
+      // If menu goes above screen, position it below the button instead
+      floatingMenu.style.bottom = (window.innerHeight - buttonRect.bottom - 10) + 'px';
+    }
 
     floatingMenu.classList.add('show');
     isMenuOpen = true;
@@ -249,6 +270,12 @@
   }
 
   function handleFloatingButtonClick(event) {
+    // Don't handle click if we actually moved during drag
+    if (hasActuallyMoved) {
+      hasActuallyMoved = false;
+      return;
+    }
+
     // Check if clicked on the X
     if (event.target.classList.contains('close-x')) {
       hideFloatingButton();
@@ -290,6 +317,103 @@
         console.error('Error opening options page:', error);
         alert('Cannot open options page. Please try again.');
       }
+    }
+  }
+
+  let isDragging = false;
+  let hasActuallyMoved = false;
+
+  function makeDraggable(element) {
+    let startY = 0;
+    let startTop = 0;
+
+    element.addEventListener('mousedown', startDrag);
+    element.addEventListener('touchstart', startDrag, { passive: false });
+
+    function startDrag(e) {
+      isDragging = true;
+      hasActuallyMoved = false;
+
+      const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+      startY = clientY;
+      startTop = parseInt(window.getComputedStyle(element).bottom, 10);
+
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('touchmove', drag, { passive: false });
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
+
+      e.preventDefault();
+    }
+
+    function drag(e) {
+      if (!isDragging) return;
+
+      const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+      const deltaY = startY - clientY;
+
+      // Mark as actually moved if there's significant movement
+      if (Math.abs(deltaY) > 5) {
+        hasActuallyMoved = true;
+      }
+
+      let newBottom = startTop + deltaY;
+
+      // Restrict to left side and bottom half of screen only
+      const buttonHeight = 60;
+      const screenHeight = window.innerHeight;
+      const minBottom = 0; // Bottom of screen
+      const maxBottom = screenHeight / 2 - buttonHeight; // Mid-screen minus button height
+
+      newBottom = Math.max(minBottom, Math.min(newBottom, maxBottom));
+
+      element.style.bottom = newBottom + 'px';
+      element.style.left = '0px'; // Keep on left side
+
+      e.preventDefault();
+    }
+
+    function stopDrag() {
+      if (isDragging) {
+        // Save position if actually moved
+        if (hasActuallyMoved) {
+          saveButtonPosition();
+        }
+
+        // Reset states
+        isDragging = false;
+        hasActuallyMoved = false;
+      }
+
+      document.removeEventListener('mousemove', drag);
+      document.removeEventListener('touchmove', drag);
+      document.removeEventListener('mouseup', stopDrag);
+      document.removeEventListener('touchend', stopDrag);
+    }
+  }
+
+  async function saveButtonPosition() {
+    if (!floatingBtn) return;
+
+    const bottom = parseInt(floatingBtn.style.bottom || '0', 10);
+
+    try {
+      await chrome.storage.local.set({ quickCopyButtonBottom: bottom });
+    } catch (error) {
+      console.error('Error saving button position:', error);
+    }
+  }
+
+  async function loadButtonPosition() {
+    if (!floatingBtn) return;
+
+    try {
+      const result = await chrome.storage.local.get(['quickCopyButtonBottom']);
+      const bottom = result.quickCopyButtonBottom || 0;
+      floatingBtn.style.bottom = bottom + 'px';
+      floatingBtn.style.left = '0px';
+    } catch (error) {
+      console.error('Error loading button position:', error);
     }
   }
 
