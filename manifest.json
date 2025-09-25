@@ -3,6 +3,11 @@
   "name": "PasteX",
   "version": "1.0",
   "description": "Store and quickly copy frequently used data like emails, phone numbers, and addresses",
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
   "permissions": [
     "storage",
     "clipboardWrite",
@@ -13,8 +18,7 @@
     "https://*/*"
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "PasteX"
+    "default_title": "PasteX - Click to show/hide floating button"
   },
   "options_page": "options.html",
   "background": {
@@ -26,6 +30,12 @@
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icon.png"],
+      "matches": ["http://*/*", "https://*/*"]
     }
   ]
 }

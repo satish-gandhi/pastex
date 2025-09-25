@@ -27,6 +27,16 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// Handle extension icon click
+chrome.action.onClicked.addListener((tab) => {
+  // Send message to content script to show floating button
+  chrome.tabs.sendMessage(tab.id, { action: 'showFloatingButton' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.log('Could not send message to tab:', chrome.runtime.lastError.message);
+    }
+  });
+});
+
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'copyToClipboard') {

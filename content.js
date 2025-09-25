@@ -25,6 +25,16 @@
       return;
     }
 
+    // Check if button is hidden
+    try {
+      const result = await chrome.storage.local.get(['quickCopyButtonHidden']);
+      if (result.quickCopyButtonHidden) {
+        return; // Don't create button if it was hidden
+      }
+    } catch (error) {
+      console.error('Error checking button hidden state:', error);
+    }
+
     createFloatingButton();
     createFloatingMenu();
     await loadMenuState();
@@ -37,10 +47,10 @@
 
     floatingBtn = document.createElement('button');
     floatingBtn.id = 'quick-copy-floating-btn';
-    floatingBtn.innerHTML = '📋';
+    floatingBtn.innerHTML = 'P<span class="close-x">×</span>';
     floatingBtn.title = 'PasteX';
+    floatingBtn.addEventListener('click', handleFloatingButtonClick);
 
-    floatingBtn.addEventListener('click', toggleMenu);
     document.body.appendChild(floatingBtn);
   }
 
@@ -238,6 +248,31 @@
     }, 1000);
   }
 
+  function handleFloatingButtonClick(event) {
+    // Check if clicked on the X
+    if (event.target.classList.contains('close-x')) {
+      hideFloatingButton();
+      return;
+    }
+    // Otherwise toggle menu
+    toggleMenu();
+  }
+
+  function hideFloatingButton() {
+    const button = document.getElementById('quick-copy-floating-btn');
+    if (button) {
+      button.style.display = 'none';
+      // Save the hidden state
+      try {
+        chrome.storage.local.set({ quickCopyButtonHidden: true });
+      } catch (error) {
+        console.error('Error saving button hidden state:', error);
+      }
+    }
+    // Also hide the menu if it's open
+    closeMenu();
+  }
+
   function openOptionsPage() {
     if (!isExtensionContextValid()) {
       alert('Extension context invalid. Please reload the page and try again.');
@@ -263,6 +298,37 @@
     div.textContent = text;
     return div.innerHTML;
   }
+
+  // Show floating button function
+  function showFloatingButton() {
+    // Reset the hidden state
+    try {
+      chrome.storage.local.set({ quickCopyButtonHidden: false });
+    } catch (error) {
+      console.error('Error resetting button hidden state:', error);
+    }
+
+    // Check if button already exists
+    if (document.getElementById('quick-copy-floating-btn')) {
+      const button = document.getElementById('quick-copy-floating-btn');
+      button.style.display = 'block';
+      return;
+    }
+
+    // Create the button if it doesn't exist
+    createFloatingButton();
+    createFloatingMenu();
+    loadMenuState();
+    loadDataAndUpdateMenu();
+  }
+
+  // Listen for messages from background script
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'showFloatingButton') {
+      showFloatingButton();
+      sendResponse({ success: true });
+    }
+  });
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
