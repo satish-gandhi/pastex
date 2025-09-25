@@ -228,23 +228,20 @@
 
       menuItem.innerHTML = `
         <div class="quick-copy-menu-item-label">${escapeHtml(item.label)}</div>
-        <button class="quick-copy-menu-item-copy" data-value="${escapeHtml(item.value)}">Copy</button>
       `;
 
-      const copyBtn = menuItem.querySelector('.quick-copy-menu-item-copy');
-      copyBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        copyToClipboard(item.value, copyBtn);
+      menuItem.addEventListener('click', () => {
+        copyToClipboard(item.value, menuItem);
       });
 
       menuContent.appendChild(menuItem);
     });
   }
 
-  async function copyToClipboard(text, button) {
+  async function copyToClipboard(text, menuItem) {
     try {
       await navigator.clipboard.writeText(text);
-      showCopyFeedback(button);
+      showCopyFeedback(menuItem);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
 
@@ -260,27 +257,33 @@
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        showCopyFeedback(button);
+        showCopyFeedback(menuItem);
       } catch (fallbackError) {
         console.error('Fallback copy failed:', fallbackError);
-        button.textContent = 'Failed';
-        button.style.background = '#ea4335';
+        const label = menuItem.querySelector('.quick-copy-menu-item-label');
+        const originalText = label.textContent;
+        label.textContent = 'Failed';
+        menuItem.style.background = '#ffeaea';
+        menuItem.style.borderColor = '#ea4335';
         setTimeout(() => {
-          button.textContent = 'Copy';
-          button.style.background = '#1a73e8';
+          label.textContent = originalText;
+          menuItem.style.background = '';
+          menuItem.style.borderColor = '';
         }, 1000);
       }
     }
   }
 
-  function showCopyFeedback(button) {
-    const originalText = button.textContent;
-    button.textContent = 'Copied!';
-    button.classList.add('copied');
+  function showCopyFeedback(menuItem) {
+    const label = menuItem.querySelector('.quick-copy-menu-item-label');
+    const originalText = label.textContent;
+
+    label.textContent = 'Copied!';
+    menuItem.classList.add('copied');
 
     setTimeout(() => {
-      button.textContent = originalText;
-      button.classList.remove('copied');
+      label.textContent = originalText;
+      menuItem.classList.remove('copied');
     }, 1000);
   }
 
