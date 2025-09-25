@@ -72,9 +72,7 @@
       <div class="quick-copy-menu-content" id="quick-copy-menu-content">
         <div class="quick-copy-no-data">Loading...</div>
       </div>
-      <div class="quick-copy-menu-footer">
-        <button class="quick-copy-manage-btn" id="quick-copy-manage-btn">Manage Data</button>
-      </div>
+      <button class="quick-copy-manage-btn" id="quick-copy-manage-btn">Manage Data</button>
     `;
 
     document.body.appendChild(floatingMenu);
@@ -99,20 +97,37 @@
 
     // Position menu relative to button's current position
     const buttonRect = floatingBtn.getBoundingClientRect();
-    const menuHeight = 400; // max-height from CSS
+    const menuMaxHeight = 350; // max-height from CSS (including header, content, and manage button)
 
-    // Position menu above the button
+    // Position menu above the button with adequate spacing
     floatingMenu.style.left = buttonRect.left + 'px';
-    floatingMenu.style.bottom = (window.innerHeight - buttonRect.top + 10) + 'px';
+    floatingMenu.style.bottom = (window.innerHeight - buttonRect.top + 15) + 'px';
 
-    // Adjust if menu would go off screen (above viewport)
+    // Show menu to get accurate measurements
+    floatingMenu.classList.add('show');
+
+    // Check if menu would go off screen (above viewport or bottom cut off)
     const menuRect = floatingMenu.getBoundingClientRect();
-    if (menuRect.top < 0) {
-      // If menu goes above screen, position it below the button instead
-      floatingMenu.style.bottom = (window.innerHeight - buttonRect.bottom - 10) + 'px';
+    const viewportHeight = window.innerHeight;
+
+    // If menu goes above screen or is cut off at bottom, reposition
+    if (menuRect.top < 10 || menuRect.bottom > viewportHeight - 10) {
+      // Calculate better position - try to center vertically if possible
+      const availableSpace = buttonRect.top - 20; // Space above button minus margin
+
+      if (availableSpace >= menuMaxHeight) {
+        // Enough space above, position above button
+        floatingMenu.style.bottom = (window.innerHeight - buttonRect.top + 15) + 'px';
+      } else {
+        // Not enough space above, position to fit in viewport
+        const optimalBottom = Math.max(10, Math.min(
+          window.innerHeight - menuMaxHeight - 10,
+          window.innerHeight - buttonRect.bottom - 15
+        ));
+        floatingMenu.style.bottom = (window.innerHeight - viewportHeight + optimalBottom) + 'px';
+      }
     }
 
-    floatingMenu.classList.add('show');
     isMenuOpen = true;
     saveMenuState(true);
     loadDataAndUpdateMenu(); // Refresh data when opening
