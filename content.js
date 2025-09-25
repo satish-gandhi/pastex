@@ -47,7 +47,7 @@
 
     floatingBtn = document.createElement('button');
     floatingBtn.id = 'quick-copy-floating-btn';
-    floatingBtn.innerHTML = 'P<span class="close-x">×</span>';
+    floatingBtn.innerHTML = '<img src="' + chrome.runtime.getURL('icon.png') + '" alt="PasteX" style="width: 24px; height: 24px;"><span class="close-x">×</span>';
     floatingBtn.title = 'PasteX';
     floatingBtn.addEventListener('click', handleFloatingButtonClick);
 
